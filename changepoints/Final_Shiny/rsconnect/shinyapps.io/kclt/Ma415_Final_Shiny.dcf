@@ -1,0 +1,12 @@
+name: Ma415_Final_Shiny
+title: Ma415_Final_Shiny
+username:
+account: kclt
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 335081
+bundleId: 1349941
+url: https://kclt.shinyapps.io/Ma415_Final_Shiny/
+when: 1525203012.87186
+asMultiple: FALSE
+asStatic: FALSE

@@ -1,0 +1,116 @@
+---
+title: "Final Project PPT"
+author: "Longhao Chen"
+date: "11/12/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r}
+library(officer)
+library(magrittr)
+library(tidyverse)
+library(readxl)
+library(rvg)
+#General Set up
+temp <- read_pptx("Template.pptx") 
+layout_summary(temp)
+master <- "Gallery"
+layout_properties(x = temp, layout = "Title Slide", master = master )
+
+#First slide with title
+
+temp %<>%  add_slide(layout = "Title Slide", master = master) %>% 
+  ph_with_text(type = "ctrTitle", str = "Benford analysis on aviation statistics") %>% 
+  ph_with_text(type =  "dt", str = format(Sys.Date())) %>% 
+  ph_with_text(type="subTitle", str="Tell me the fishy data!
+")
+
+#Second slide with text
+temp %<>%  add_slide(layout = "Two Content", master = master  ) %>% 
+ph_with_text(type = "title", str = "What is Benford's law") %>% 
+  ph_with_ul(type = "body", index = 2, 
+               str_list = c("1. Benford's law is a phenomenological law also called the first digit law.", 
+                            "2. Digit 1 tends to occur with probability of 30%, greater than the expected of 11%"
+                            
+                            ),
+               level_list = c(1,1)) %>% 
+  
+#Third slide
+
+temp %<>% add_slide(layout = "Title and Content", master = master ) %>% 
+  ph_with_text(type = "title", str = "Distribution of Benford's law") %>%
+  ph_with_img_at( src = "bear.png", width = 4, height = 3, left = 7, top = 3.5)
+#Fourth slide
+
+temp %<>% add_slide(layout = "Title and Content", master = master ) %>% 
+  ph_with_text(type = "title", str = "Investing in Stocks: Sample Corporate Stock Certificate") %>% 
+  ph_with_text(type = "body", str = "A decline of 15-20% of the broad market coupled with pessimistic sentiment underlying the stock market.")%>%
+  ph_with_img_at( src = "bear.png", width = 4, height = 3, left = 7, top = 3.5)
+
+
+#Fifth slide
+DJI85 <- read_excel("ppt examples/DJI85.xlsx")
+myg <-ggplot(DJI85) +
+  geom_line(aes(x = Date, y = High))
+
+
+temp %<>% add_slide(layout = "Title and Content", master = master ) %>% 
+  ph_with_text(type = "title", str = "What is a Bear Market?") %>% 
+ ph_with_vg(code = print(myg), 
+             type = 'body')
+ 
+
+#DJI85$Date <- format(as.Date(DJI85$Date), "%Y")
+
+
+#Sixth 
+temp %<>% add_slide(layout = "Title and Content", master = master ) %>% 
+  ph_with_text(type = "title", str = "Stock Market Indexes: the Dow Jones Industrial Average") %>% 
+  ph_with_img( src = "Untitled1.png")
+
+## Slide 7
+temp %<>% 
+  add_slide(layout = "Title and Content",
+            master = master) %>% 
+  ph_empty(type = 'title') %>%
+  ph_add_fpar(fpar(ftext('the last Bear Market',
+                         prop = fp_text(font.family = 'Arial (Headings)', 
+                                        font.size = 44,
+                                        bold = TRUE))), 
+              type = 'title') %>%
+  ph_with_ul(type="body", 
+             str_list = c("Sept. 30, 2002 Dow 7528", 
+                          "Jan. 5, 2004 Dow 10,568", 
+                          "Oct. 8, 2007 Dow 14093"), 
+             level_list = c(1, 1, 1), 
+             style = fp_text(font.size = 36, font.family = "Arial", bold = TRUE)) 
+
+# Slide 8
+temp %<>% 
+  add_slide(layout = "Title and Content",
+            master = master) %>% 
+    ph_empty(type = 'title') %>%
+  ph_add_fpar(fpar(ftext('What I do in a Bear Market',
+                         prop = fp_text(font.family = 'Arial (Headings)', 
+                                        font.size = 44,
+                                        bold = TRUE))), 
+              type = 'title') %>%
+  ph_with_ul(type="body", 
+             str_list =  c("Decide whether this is a market correction or the start of something more", 
+                           "Review the stocks you own",
+                           "Review stocks you wanted to own but were too expensive at time of research", 
+                           "Check your portfolio for balance or the type of stocks you own"),
+             level_list = c(1, 1, 1, 1),
+             style = fp_text(font.size = 28, font.family = "Arial", bold = TRUE))
+
+remove_slide(temp, index = 1)
+
+
+print(temp, target = "Officer.pptx") 
+```
+
+
