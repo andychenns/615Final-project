@@ -1,0 +1,134 @@
+---
+title: "Final Project"
+author: "Longhao"
+date: "12/1/2018"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+```{r setup, include=FALSE,echo=FALSE,message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(readr)
+library(tidyverse)
+library(benford.analysis)
+library(knitr)
+library(esquisse)
+library(BenfordTests)
+library(gganimate)
+library(gapminder)
+library(lubridate)
+library(zoo)
+library(plotly)
+```
+
+#Abstract
+
+This project is to use Benford's law to examine the statistics of aviation traffic data. Every few months, department of transportation of United States will release the data of aviation traffic, which is provided by each airline. I am interested in finding out whether the data are "true" or not. Particularly, I selected four variables that are distinctive but also correlated with each other. They are number of available seats, number of passengers, the distance of the flight and the airtime.
+
+##Introduction
+Benford's law is a phenomenological law also called the first digit law. This law states that in the listings, tables of statistics, etc., the digit 1 tends to occur with probability of 30%, greater than the expected of 11% (i.e., one out of nine). The mathmatical form is like below.
+
+$$Prob(D_1=d)=log_{10}(1+\frac1d) \; for\;d =1,2,...9;$$
+Here is a probability distribution table and a bar plot from 1 to 9.
+```{r}
+benf <- as.vector(c(0.301,0.176,0.125,0.097,0.0792,0.0669,0.058,0.0512,0.0458))
+number <- 1:9
+benf<-cbind(benf, number)
+benf<-as.data.frame(benf)
+colnames(benf)[1]<-"Probability"
+benf$number<-as.factor(benf$number)
+kable(benf)
+ggplot(benf)+
+  geom_col(aes(x = number, y = Probability)) + ggtitle("Probability of each number under Benford's law")
+```
+
+#Materials and methods
+
+The data that constitutes this research is from Bureau of Transportation Statistics(BTS) and can be found on this website https://www.bts.gov. The job of BTS is to collect and compile the data; however, they can not guarante that the data provided by the airline companies are accurate. Therefore, this project is trying to identify the suspecious data entry.
+
+We will first do some visualization of our data by looking at the largest 10 airlines.
+
+
+```{r}
+sum <- read_csv("sum.csv", col_types = cols(X1 = col_skip()))
+sum<-within(sum, Date <- sprintf("%d-%02d", YEAR, MONTH))
+sum$Date<- as.Date(as.yearmon(sum$Date,  "%Y-%m"))
+sum$log_passenger<-log(sum$sum_passengers+1)
+sum$log_seats<-log(sum$sum_seats+1)
+sum$log_airtime<-log(sum$sum_airtime+1)
+sum$log_distance<-log(sum$sum_distance+1)
+```
+
+Let's take a look at 2018 May data. We can see that out of top 10 airlines, top 3 airline companies have numbers begin with 1. Is this a conincidence or not? 
+
+```{r}
+may2018 <- sum %>% filter(YEAR==2018&MONTH==5) 
+top10<- may2018 %>%  arrange( desc(sum_seats))
+top10<- top10 [1:10,]
+top10$UNIQUE_CARRIER_NAME<-as.factor(top10$UNIQUE_CARRIER_NAME)
+
+ggplot(data = top10) +
+  aes(x = reorder(UNIQUE_CARRIER_NAME, -sum_passengers), weight = sum_passengers) +
+  geom_bar() +
+  labs(title = 'Number of passengers for top 10 airlines',
+    x = 'Airline companies',
+    y = 'Sum of passengers') +
+  theme_minimal() +theme(axis.text.x = element_text(angle = 30, hjust = 1))
+```
+
+
+This is the animation of all the airlines with y axis represents the sum of total airtime and x axis represents the sum of travelled distance. 
+```{r}
+  ggplot(sum, aes(y = log_airtime, x = log_distance, group = UNIQUE_CARRIER_NAME, size=log_passenger)) +
+    geom_point(alpha = 0.7) +
+    labs(title = "Year: {frame_time}", y = "Sum of total airtime", x = "Sum of total travelled distance") +
+    transition_time(sum$Date) +
+    ease_aes("linear")
+```
+
+
+Now we will examine all the airlines by using Benford's law and find out the distribution. This plot gives an explanation of the Benford's over all of the data. For the top left figure, we can see a spike of value 1. This is probably because our data is consisted of the last 3 years history. For example, Southwest Airlines Co. has a monthly sum of passengers flucturating around one million in the last three years. 
+
+Overall, our sum of available seats data follows a distribution of Benford's law. 
+
+```{r}
+sum_check <- benford(sum$sum_passengers, number.of.digits = 2)
+plot(sum_check)
+```
+
+However, there are some suspecious data. For example, ACM AIR CHARTER company on 2015 had 10 passengers but 0 airtime.
+```{r}
+passenger_suspect<-getSuspects(bfd = sum_check, data = sum)
+passenger_suspect[1:5,]
+kable(passenger_suspect[1:5,1:8])
+```
+
+
+Let's check some other variables such as distance, passengers and airtime.
+```{r}
+distance<-benford(sum$sum_distance,number.of.digits = 2)
+passengers<-benford(sum$sum_passengers,number.of.digits = 2)
+airtime<-benford(sum$sum_airtime,number.of.digits = 2)
+plot(distance)
+```
+
+
+
+```{r, echo=FALSE}
+#This is data cleaning process
+
+# x2015 <- read_csv("~/Desktop/MA615/Personal project/data/2015.csv")
+# x2016 <- read_csv("~/Desktop/MA615/Personal project/data/2016.csv")
+# x2017 <- read_csv("~/Desktop/MA615/Personal project/data/2017.csv")
+# x2018 <- read_csv("~/Desktop/MA615/Personal project/data/2018.csv")
+# 
+# sum2015 <- x2015 %>% group_by(UNIQUE_CARRIER_NAME, YEAR, MONTH) %>% summarise(sum_seats=sum(SEATS),sum_passengers=sum(PASSENGERS), sum_distance=sum(DISTANCE),sum_airtime=sum(AIR_TIME))
+# sum2016 <- x2016 %>% group_by(UNIQUE_CARRIER_NAME, YEAR, MONTH) %>% summarise(sum_seats=sum(SEATS),sum_passengers=sum(PASSENGERS), sum_distance=sum(DISTANCE),sum_airtime=sum(AIR_TIME))
+# sum2017 <- x2017 %>% group_by(UNIQUE_CARRIER_NAME, YEAR, MONTH) %>% summarise(sum_seats=sum(SEATS),sum_passengers=sum(PASSENGERS), sum_distance=sum(DISTANCE),sum_airtime=sum(AIR_TIME))
+# sum2018 <- x2018 %>% group_by(UNIQUE_CARRIER_NAME, YEAR, MONTH) %>% summarise(sum_seats=sum(SEATS),sum_passengers=sum(PASSENGERS), sum_distance=sum(DISTANCE),sum_airtime=sum(AIR_TIME))
+# sum<-rbind(sum2015, sum2016,sum2017,sum2018)
+```
+
+
